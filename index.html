@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Whiteout Survival – SVS Reservation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="stylesheet" href="./css/theme.css" />
+</head>
+
+<body class="welcome-bg">
+
+<div id="authLoader" class="auth-loader">
+    <div class="spinner"></div>
+    <p>Loading Whiteout SVS…</p>
+</div>
+
+<div id="appRoot" class="hidden">
+
+<div id="globalLoader" class="global-loader hidden">
+    <div class="spinner"></div>
+    <p>Signing you in…</p>
+</div>
+
+<div class="welcome-container">
+
+    <div class="welcome-card">
+
+        <h1 class="game-title">WHITEOUT SURVIVAL</h1>
+        <h2 class="subtitle">State Minister Reservation System</h2>
+
+        <p class="description">
+            Coordinate ministers, alliances, and players for SVS.<br />
+            Invited players are approved instantly.
+        </p>
+
+        <button id="loginBtn" class="primary-btn">
+            <span class="google-icon">🔐</span>
+            Login with Google
+        </button>
+
+    </div>
+
+    <footer class="footer">
+        State Management Tool • Built for SVS Coordination
+    </footer>
+
+</div>
+
+<script type="module" src="./js/firebase.js"></script>
+<script type="module" src="./js/auth-google.js"></script>
+<script type="module" src="./js/auth-state.js"></script>
+
+</div>
+</body>
+</html>

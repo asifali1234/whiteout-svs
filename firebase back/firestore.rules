@@ -1,0 +1,77 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isLoggedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.token.email))
+        && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == "admin";
+    }
+
+    /* ---------------- ALLIANCES ---------------- */
+    match /alliances/{id} {
+      allow read: if isLoggedIn();
+      allow write: if isAdmin();
+    }
+
+    /* ---------------- USERS ---------------- */
+    match /users/{userId} {
+
+      /* 1️⃣ First login → create empty user */
+      allow create: if isLoggedIn()
+        && request.auth.token.email == userId;
+
+      /* 2️⃣ Admin full access */
+      allow read, write: if isAdmin();
+
+      /* 3️⃣ User can read own document */
+      allow read: if isLoggedIn()
+        && request.auth.token.email == userId;
+
+      /* 4️⃣ INVITED USER BOOTSTRAP (once) */
+      allow update: if isLoggedIn()
+        && request.auth.token.email == userId
+        && resource.data.playerId == null
+        && resource.data.ingameName == null
+        && request.resource.data.status == "approved";
+
+      /* 5️⃣ NON-INVITED USER PROFILE SUBMIT (once) */
+      allow update: if isLoggedIn()
+        && request.auth.token.email == userId
+        && resource.data.playerId == null
+        && resource.data.ingameName == null
+        && request.resource.data.status == "pending";
+
+      /* 6️⃣ APPROVED USER LIMITED EDIT (CORRECT) */
+      allow update: if isLoggedIn()
+        && request.auth.token.email == userId
+        && resource.data.status == "approved"
+        && request.resource.data.diff(resource.data)
+             .changedKeys()
+             .hasOnly(["ingameName", "alliance"]);
+
+    }
+
+
+    /* ---------------- INVITES ---------------- */
+    match /invites/{inviteId} {
+
+      // Admin: full access
+      allow read, write: if isAdmin();
+
+      // User can READ their own invite
+      allow read: if isLoggedIn()
+        && request.auth.token.email == resource.data.email;
+
+      // User can MARK THEIR OWN INVITE AS USED
+      allow update: if isLoggedIn()
+        && request.auth.token.email == resource.data.email
+        && resource.data.used == false
+        && request.resource.data.used == true;
+    }
+  }
+}
