@@ -1,104 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Complete Profile – Whiteout SVS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <link rel="stylesheet" href="./css/theme.css" />
+    <meta charset="UTF-8"/>
+    <title>Whiteout SVS – Member Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="./css/theme.css"/>
 </head>
 
 <body class="admin-bg">
 
 <!-- REQUIRED by auth-state.js -->
 <div id="authLoader" class="auth-loader">
-  <div class="spinner"></div>
-  <p>Loading Whiteout SVS…</p>
+    <div class="spinner"></div>
+    <p>Loading Whiteout SVS…</p>
 </div>
 
 <!-- REQUIRED by auth-state.js -->
 <div id="appRoot" class="hidden">
 
-<header class="admin-header">
-    <h2>Whiteout SVS – Member Profile</h2>
-    <button id="logoutBtn" class="danger-btn">Logout</button>
-</header>
+    <header class="admin-header">
+        <h2>Whiteout SVS – Member Dashboard</h2>
 
-<div class="welcome-container">
-
-
-    <div class="welcome-card">
-
-        <div id="profileSpinner" class="inline-loader"></div>
-
-        <h3>My Profile</h3>
-        <p class="description">
-            View and manage your in-game profile details.
-        </p>
-
-        <!-- APPROVED USER VIEW -->
-        <div id="profileView" style="display:none;">
-
-            <label>
-                Player ID
-                <input type="text" id="playerIdInput" disabled />
-            </label>
-
-            <label>
-                In-game Name
-                <input type="text" id="ingameNameInput" />
-            </label>
-
-            <label>
-                Alliance
-                <select id="allianceSelect"></select>
-            </label>
-
-            <!-- ✅ THIS is where it goes -->
-            <button id="saveProfileBtn" class="primary-btn">
-                Save Changes
+        <div class="header-actions">
+            <button id="profileBtn" class="primary-btn hidden">
+                Profile
             </button>
 
+            <button id="adminBtn" class="primary-btn hidden">
+                Admin Dashboard
+            </button>
+
+            <button id="logoutBtn" class="danger-btn">
+                Logout
+            </button>
         </div>
+    </header>
 
-        <!-- PENDING USER FORM -->
-        <form id="profileForm" style="display:none;">
-
-            <label>
-                Player ID
-                <input type="text" id="playerIdInputPending" required />
-            </label>
-
-            <label>
-                In-game Name
-                <input type="text" id="ingameNameInputPending" required />
-            </label>
-
-            <label>
-                Alliance
-                <select id="allianceSelectPending" required></select>
-            </label>
-
-            <button type="submit" class="primary-btn">
-                Submit for Approval
-            </button>
-
-        </form>
-
-        <p id="profileStatus" class="hint"></p>
-
+    <!-- MEMBER TABS -->
+    <div class="tabs member-tabs">
+        <button class="tab-btn active" data-tab="profile">Profile</button>
+        <button class="tab-btn" data-tab="svs">SVS Prep</button>
+        <button class="tab-btn" data-tab="reservations">Reservations</button>
+        <button class="tab-btn" data-tab="announcements">Announcements</button>
     </div>
 
+    <div class="tab-container">
+
+        <!-- PROFILE TAB -->
+        <div id="tab-profile" class="tab-panel active">
+            <div class="welcome-container">
+                <div class="welcome-card">
+
+                    <div id="profileSpinner" class="inline-loader"></div>
+
+                    <h3>My Profile</h3>
+                    <p class="description">
+                        View and manage your in-game profile details.
+                    </p>
+
+                    <!-- APPROVED USER VIEW -->
+                    <div id="profileView" style="display:none;">
+
+                        <label>
+                            Player ID
+                            <input type="text" id="playerIdInput" disabled/>
+                        </label>
+
+                        <label>
+                            In-game Name
+                            <input type="text" id="ingameNameInput"/>
+                        </label>
+
+                        <label>
+                            Alliance
+                            <select id="allianceSelect"></select>
+                        </label>
+
+                        <!-- ✅ THIS is where it goes -->
+                        <button id="saveProfileBtn" class="primary-btn">
+                            Save Changes
+                        </button>
+
+                    </div>
+
+                    <!-- PENDING USER FORM -->
+                    <form id="profileForm" style="display:none;">
+
+                        <label>
+                            Player ID
+                            <input type="text" id="playerIdInputPending" required/>
+                        </label>
+
+                        <label>
+                            In-game Name
+                            <input type="text" id="ingameNameInputPending" required/>
+                        </label>
+
+                        <label>
+                            Alliance
+                            <select id="allianceSelectPending" required></select>
+                        </label>
+
+                        <button type="submit" class="primary-btn">
+                            Submit for Approval
+                        </button>
+
+                    </form>
+
+                    <p id="profileStatus" class="hint"></p>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- SVS PREP -->
+        <div id="tab-svs" class="tab-panel">
+            <div class="welcome-card">
+                <h3>SVS Preparation</h3>
+                <p>Coming soon: prep tracking, resource planning, war targets.</p>
+            </div>
+        </div>
+
+        <!-- RESERVATIONS -->
+        <div id="tab-reservations" class="tab-panel">
+            <div class="welcome-card">
+                <h3>Minister Reservations</h3>
+                <p>Coming soon: request and manage minister roles.</p>
+            </div>
+        </div>
+
+        <!-- ANNOUNCEMENTS -->
+        <div id="tab-announcements" class="tab-panel">
+            <div class="welcome-card">
+                <h3>State Announcements</h3>
+                <p>Important updates from admins will appear here.</p>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="./js/firebase.js"></script>
-<script type="module" src="./js/auth-google.js"></script>
-<script type="module" src="./js/auth-state.js"></script>
-<script type="module" src="./js/profile.js"></script>
+    <script type="module" src="./js/auth-google.js"></script>
+    <script type="module" src="./js/auth-state.js"></script>
+    <script type="module" src="./js/profile.js"></script>
 
-<div id="toastContainer" class="toast-container"></div>
-
-</div>
+    <div id="toastContainer" class="toast-container"></div>
 
 </div>
+
 </body>
 </html>

@@ -48,22 +48,27 @@ onAuthStateChanged(auth, async (user) => {
     await setDoc(userRef, {
       email,
       role: "member",
-      status: "pending",
+      status: "incomplete",
       playerId: null,
       ingameName: null,
       alliance: null,
       createdAt: serverTimestamp()
     });
     snap = await getDoc(userRef);
+
   }
 
   const data = snap.data();
+  console.log(data);
 
+  console.log("ready to route based on role and profile completeness");
   /* ================= ADMIN ================= */
   if (data.role === "admin") {
-    if (currentPage !== "admin.html") {
-      window.location.replace("admin.html");
-      return;
+
+    // Allow admin to access BOTH pages
+    if (currentPage === "index.html") {
+        window.location.replace("profile.html");
+        return;
     }
 
     // already on admin page → render immediately
@@ -73,6 +78,7 @@ onAuthStateChanged(auth, async (user) => {
 
   /* ================= MEMBER WITHOUT PROFILE ================= */
   if (!data.playerId || !data.ingameName || !data.alliance) {
+    console.log("member without profile");
     if (currentPage !== "profile.html") {
       window.location.replace("profile.html");
       return;
@@ -85,9 +91,12 @@ onAuthStateChanged(auth, async (user) => {
 
   /* ================= MEMBER WITH PROFILE ================= */
   if (currentPage !== "profile.html") {
+    console.log("member without profile");
     window.location.replace("profile.html");
     return;
   }
+
+  console.log("mgoing to showapp");
 
   showApp();
 });

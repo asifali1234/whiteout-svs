@@ -1,15 +1,9 @@
 // js/profile.js
 
-import { auth, db } from "./firebase.js";
-import {
-    doc,
-    getDoc,
-    updateDoc,
-    getDocs,
-    collection,
-    query,
-    where
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {auth, db} from "./firebase.js";
+import {doc, getDoc, updateDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {getAlliances} from "./cache.js";
+import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* ---------- ELEMENTS ---------- */
 const profileForm = document.getElementById("profileForm");
@@ -31,27 +25,21 @@ const spinner = document.getElementById("profileSpinner")
 function showToast(message, type = "info") {
     const c = document.getElementById("toastContainer");
     if (!c) return;
-
     const t = document.createElement("div");
     t.className = `toast ${type}`;
     t.innerText = message;
     c.appendChild(t);
-
     setTimeout(() => t.remove(), 3000);
 }
 
 /* ---------- LOAD ALLIANCES ---------- */
 async function loadAlliances(selectEl) {
     selectEl.innerHTML = "";
-
-    const snap = await getDocs(
-        query(collection(db, "alliances"), where("status", "==", "active"))
-    );
-
-    snap.forEach(d => {
+    const alliances = await getAlliances();
+    alliances.forEach(a => {
         const opt = document.createElement("option");
-        opt.value = d.id;
-        opt.textContent = `${d.data().shortName} – ${d.data().name}`;
+        opt.value = a.id;
+        opt.textContent = `${a.shortName} – ${a.name}`;
         selectEl.appendChild(opt);
     });
 }
@@ -71,6 +59,7 @@ async function loadProfile() {
         return;
     }
 
+
     let snap;
     try {
         snap = await getDoc(doc(db, "users", user.email));
@@ -88,6 +77,52 @@ async function loadProfile() {
 
     const data = snap.data();
     console.log("PROFILE DATA:", data);
+
+    const adminBtn = document.getElementById("adminBtn");
+
+    if (adminBtn && data?.role === "admin") {
+        adminBtn.classList.remove("hidden");
+        adminBtn.onclick = () => {
+            window.location.href = "admin.html";
+        };
+    }
+
+    /* ================= CHECK INVITE ================= */
+    const { collection, query, where, getDocs } =
+        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+
+    const inviteQuery = query(
+        collection(db, "invites"),
+        where("email", "==", user.email),
+        where("used", "==", false),
+        where("cancelled", "==", false)
+    );
+
+    const inviteSnap = await getDocs(inviteQuery);
+
+    if (!inviteSnap.empty) {
+    const inviteDoc = inviteSnap.docs[0];
+    const inviteData = inviteDoc.data();
+
+    await updateDoc(doc(db, "users", user.email), {
+        playerId: inviteData.playerId,
+        ingameName: inviteData.ingameName,
+        alliance: inviteData.alliance,
+        status: "approved"
+    });
+
+    await updateDoc(inviteDoc.ref, {
+        used: true
+    });
+
+        statusText.innerText =
+            "✅ Invitation accepted. Profile approved.";
+
+        await loadProfile(); // 🔥 refresh UI
+        return;
+    }
+
+    controlTabs(data.status);
 
     /* ---------- APPROVED USER ---------- */
     if (data.status === "approved") {
@@ -111,9 +146,7 @@ async function loadProfile() {
     /* ---------- PENDING / NEW USER ---------- */
     await loadAlliances(alliancePending);
     profileForm.style.display = "block";
-    profileView.classList.add("fade-in");
-
-    await loadAlliances(alliancePending);
+    profileForm.classList.add("fade-in");
 
     statusText.innerText = "⏳ Complete your profile and wait for approval";
 }
@@ -156,10 +189,6 @@ if (profileForm) {
     };
 }
 
-/* ---------- INIT ---------- */
-import { onAuthStateChanged } from
-        "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
 onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
@@ -167,7 +196,9 @@ onAuthStateChanged(auth, async (user) => {
         // 🧊 KEEP SPINNER VISIBLE
         // auth-state.js will NOT hide it for profile data
         spinner.style.display = "block";
-        await loadProfile(); // waits for everything
+        await loadProfile();
+
+
         spinner.style.display = "none";
 
     } catch (e) {
@@ -182,3 +213,46 @@ onAuthStateChanged(auth, async (user) => {
         if (appRoot) appRoot.classList.remove("hidden");
     }
 });
+
+/* ---------- MEMBER TABS ---------- */
+const memberTabs = document.querySelectorAll(".member-tabs .tab-btn");
+const memberPanels = document.querySelectorAll(".tab-panel");
+
+memberTabs.forEach(btn => {
+    btn.onclick = () => {
+        memberTabs.forEach(b => b.classList.remove("active"));
+        memberPanels.forEach(p => p.classList.remove("active"));
+
+        btn.classList.add("active");
+        const panel = document.getElementById(`tab-${btn.dataset.tab}`);
+        if (panel) panel.classList.add("active");
+    };
+});
+
+
+function controlTabs(status) {
+    const memberTabs = document.querySelectorAll(".member-tabs .tab-btn");
+
+    memberTabs.forEach(btn => {
+        const tab = btn.dataset.tab;
+
+        if (status !== "approved" && tab !== "profile") {
+            btn.classList.add("disabled-tab");
+            btn.style.pointerEvents = "none";
+            btn.style.opacity = "0.5";
+        } else {
+            btn.classList.remove("disabled-tab");
+            btn.style.pointerEvents = "auto";
+            btn.style.opacity = "1";
+        }
+    });
+
+    // If not approved, force profile tab active
+    if (status !== "approved") {
+        document.querySelectorAll(".tab-panel").forEach(p =>
+            p.classList.remove("active")
+        );
+        document.querySelector('[data-tab="profile"]').classList.add("active");
+        document.getElementById("tab-profile").classList.add("active");
+    }
+}
