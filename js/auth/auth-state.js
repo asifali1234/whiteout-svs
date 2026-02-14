@@ -1,8 +1,6 @@
-// js/auth-state.js
-
-import { auth, db } from "./firebase.js";
-import { onAuthStateChanged } from
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// auth/auth-state.js — global onAuthStateChanged routing/bootstrapping
+import { auth, db } from "../lib/firebase.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
   doc,
@@ -100,3 +98,5 @@ onAuthStateChanged(auth, async (user) => {
 
   showApp();
 });
+
+

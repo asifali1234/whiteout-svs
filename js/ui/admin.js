@@ -1,18 +1,18 @@
-import { auth, db } from "./firebase.js";
-import {
-    collection,
-    getDocs,
-    doc,
-    updateDoc,
-    deleteDoc,
-    addDoc,
-    getDoc,
-    setDoc,
-    query,
-    where
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAlliances, clearAllianceCache } from "./cache.js";
+// ui/admin.js — Admin UI controller (tabs, modals, and renders)
 
+// Third-party / CDN imports
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Local firebase instances
+import { auth, db } from "../lib/firebase.js";
+
+// Data modules
+import { getAlliancesData, saveAllianceData } from "../data/allianceOps.js";
+import { createInvite, cancelInvite, fetchActiveInvites } from "../data/inviteOps.js";
+import { fetchUsersByStatus, approveUser, updateUser, deleteUser } from "../data/userOps.js";
+
+/* ===================== DOM NODES ===================== */
 /* ===================== SEARCH ===================== */
 const inviteSearch = document.querySelector('[data-search="invites"]');
 const pendingSearch = document.querySelector('[data-search="pending"]');
@@ -56,13 +56,16 @@ const editAlliance = document.getElementById("editAlliance");
 const editStatus = document.getElementById("editStatus");
 const editRole = document.getElementById("editRole");
 
-/* ===================== CACHES ===================== */
+/* ===================== CACHES & STATE ===================== */
 let inviteCache = null;
 let pendingCache = null;
 let approvedCache = null;
 let allianceCache = null;
 
-/* ===================== TOAST ===================== */
+// store the document id for the user being edited (was incorrectly using email as id)
+let editUserId = null;
+
+/* ===================== HELPERS ===================== */
 function showToast(msg, type = "info") {
     const c = document.getElementById("toastContainer");
     if (!c) return;
@@ -97,6 +100,9 @@ async function activateTab(tab) {
         if (tab === "invites") await loadInvites();
         if (tab === "pending") await loadUsers("pending");
         if (tab === "approved") await loadUsers("approved");
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load tab data", "error");
     } finally {
         loader.style.display = "none";
     }
@@ -104,8 +110,13 @@ async function activateTab(tab) {
 
 /* ===================== ALLIANCES ===================== */
 async function loadAlliances() {
-    allianceCache = await getAlliances();
-    renderAlliances(allianceCache);
+    try {
+        allianceCache = await getAlliancesData();
+        renderAlliances(allianceCache);
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load alliances", "error");
+    }
 }
 
 function renderAlliances(list) {
@@ -128,15 +139,13 @@ function renderAlliances(list) {
 
 /* ===================== INVITES ===================== */
 async function loadInvites() {
-    const snap = await getDocs(
-        query(
-            collection(db, "invites"),
-            where("used", "==", false),
-            where("cancelled", "==", false)
-        )
-    );
-    inviteCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderInvites(inviteCache);
+    try {
+        inviteCache = await fetchActiveInvites();
+        renderInvites(inviteCache);
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load invites", "error");
+    }
 }
 
 function renderInvites(list) {
@@ -159,9 +168,14 @@ function renderInvites(list) {
             <td><button class="danger-btn">Cancel</button></td>
         `;
         tr.querySelector("button").onclick = async () => {
-            await updateDoc(doc(db, "invites", i.id), { cancelled: true });
-            showToast("Invite cancelled", "info");
-            loadInvites();
+            try {
+                await cancelInvite(i.id);
+                showToast("Invite cancelled", "info");
+                loadInvites();
+            } catch (e) {
+                console.error(e);
+                showToast("Failed to cancel invite", "error");
+            }
         };
         inviteTable.appendChild(tr);
     });
@@ -169,15 +183,16 @@ function renderInvites(list) {
 
 /* ===================== USERS ===================== */
 async function loadUsers(status) {
-    const snap = await getDocs(
-        query(collection(db, "users"), where("status", "==", status))
-    );
+    try {
+        const data = await fetchUsersByStatus(status);
+        if (status === "pending") pendingCache = data;
+        else approvedCache = data;
 
-    const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (status === "pending") pendingCache = data;
-    else approvedCache = data;
-
-    renderUsers(data, status === "pending" ? pendingTable : approvedTable, status);
+        renderUsers(data, status === "pending" ? pendingTable : approvedTable, status);
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load users", "error");
+    }
 }
 
 function renderUsers(list, table, status) {
@@ -198,9 +213,14 @@ function renderUsers(list, table, status) {
             const approve = document.createElement("button");
             approve.innerText = "Approve";
             approve.onclick = async () => {
-                await updateDoc(doc(db, "users", u.id), { status: "approved" });
-                showToast("User approved", "success");
-                loadUsers("pending");
+                try {
+                    await approveUser(u.id);
+                    showToast("User approved", "success");
+                    loadUsers("pending");
+                } catch (e) {
+                    console.error(e);
+                    showToast("Approve failed", "error");
+                }
             };
             tr.children[4].appendChild(approve);
         }
@@ -222,7 +242,7 @@ function renderUsers(list, table, status) {
             if (!confirmDelete) return;
 
             try {
-                await deleteDoc(doc(db, "users", u.id));
+                await deleteUser(u.id);
                 showToast("User deleted", "info");
                 loadUsers(status);
             } catch (e) {
@@ -250,19 +270,26 @@ if (cancelInviteBtn)
 
 if (createInviteBtn)
     createInviteBtn.onclick = async () => {
-        await addDoc(collection(db, "invites"), {
-            email: inviteEmail.value.trim(),
-            playerId: invitePlayerId.value.trim(),
-            ingameName: inviteIngameName.value.trim(),
-            alliance: inviteAlliance.value,
-            invitedBy: auth.currentUser.email,
-            used: false,
-            cancelled: false,
-            createdAt: new Date()
-        });
-        showToast("Invite created", "success");
-        inviteModal.classList.remove("active");
-        loadInvites();
+        try {
+            const email = inviteEmail.value.trim();
+            if (!email) {
+                showToast("Email is required", "error");
+                return;
+            }
+
+            await createInvite({
+                email,
+                playerId: invitePlayerId.value.trim(),
+                ingameName: inviteIngameName.value.trim(),
+                alliance: inviteAlliance ? inviteAlliance.value : ""
+            });
+            showToast("Invite created", "success");
+            inviteModal.classList.remove("active");
+            loadInvites();
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to create invite", "error");
+        }
     };
 
 // Alliance
@@ -281,16 +308,16 @@ if (cancelAllianceBtn)
 
 if (saveAllianceBtn)
     saveAllianceBtn.onclick = async () => {
-        await setDoc(doc(db, "alliances", allianceIdInput.value.trim()), {
-            shortName: allianceShortNameInput.value.trim(),
-            name: allianceNameInput.value.trim(),
-            status: allianceStatusInput.value
-        }, { merge: true });
+        try {
+            await saveAllianceData(allianceIdInput.value, allianceShortNameInput.value, allianceNameInput.value, allianceStatusInput.value);
 
-        clearAllianceCache();
-        showToast("Alliance saved", "success");
-        allianceModal.classList.remove("active");
-        loadAlliances();
+            showToast("Alliance saved", "success");
+            allianceModal.classList.remove("active");
+            loadAlliances();
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to save alliance", "error");
+        }
     };
 
 function openAllianceModal(a) {
@@ -304,6 +331,9 @@ function openAllianceModal(a) {
 
 // Edit User
 function openEditModal(u) {
+    // store the real document id so we can update correctly
+    editUserId = u.id;
+
     editEmail.value = u.email;
     editPlayerId.value = u.playerId || "";
     editIngameName.value = u.ingameName || "";
@@ -312,6 +342,8 @@ function openEditModal(u) {
 
     loadAllianceOptions(editAlliance).then(() => {
         editAlliance.value = u.alliance || "";
+    }).catch(e => {
+        console.error(e);
     });
 
     editModal.classList.add("active");
@@ -322,32 +354,49 @@ if (cancelEditBtn)
 
 if (saveEditBtn)
     saveEditBtn.onclick = async () => {
-        await updateDoc(doc(db, "users", editEmail.value), {
-            playerId: editPlayerId.value.trim(),
-            ingameName: editIngameName.value.trim(),
-            alliance: editAlliance.value,
-            status: editStatus.value,
-            role: editRole.value
-        });
-        showToast("User updated", "success");
-        editModal.classList.remove("active");
-        loadUsers(editStatus.value);
+        if (!editUserId) {
+            showToast("No user selected", "error");
+            return;
+        }
+
+        try {
+            await updateUser(editUserId, {
+                playerId: editPlayerId.value.trim(),
+                ingameName: editIngameName.value.trim(),
+                alliance: editAlliance.value,
+                status: editStatus.value,
+                role: editRole.value
+            });
+            showToast("User updated", "success");
+            editModal.classList.remove("active");
+            loadUsers(editStatus.value);
+        } catch (e) {
+            console.error(e);
+            showToast("Failed to update user", "error");
+        }
     };
 
 /* ===================== ALLIANCE OPTIONS ===================== */
 async function loadAllianceOptions(selectEl) {
+    if (!selectEl) return;
     selectEl.innerHTML = "";
-    const alliances = await getAlliances();
-    alliances.forEach(a => {
-        const opt = document.createElement("option");
-        opt.value = a.id;
-        opt.textContent = `${a.shortName} – ${a.name}`;
-        selectEl.appendChild(opt);
-    });
+    try {
+        const alliances = await getAlliancesData();
+        alliances.forEach(a => {
+            const opt = document.createElement("option");
+            opt.value = a.id;
+            opt.textContent = `${a.shortName} – ${a.name}`;
+            selectEl.appendChild(opt);
+        });
+    } catch (e) {
+        console.error(e);
+        showToast("Failed to load alliances for select", "error");
+    }
 }
 
 /* ===================== SEARCH ===================== */
 function attachSearch(input, table) {
+    if (!input || !table) return;
     input.oninput = e => {
         const q = e.target.value.toLowerCase();
         table.querySelectorAll("tr").forEach((r, i) => {
@@ -362,9 +411,6 @@ if (approvedSearch) attachSearch(approvedSearch, approvedTable);
 
 /* ===================== INIT ===================== */
 activateTab("alliances");
-
-import { onAuthStateChanged } from
-        "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) return;
@@ -381,3 +427,4 @@ onAuthStateChanged(auth, async (user) => {
         };
     }
 });
+

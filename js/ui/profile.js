@@ -1,9 +1,9 @@
-// js/profile.js
+// ui/profile.js — profile page UI & wiring
 
-import {auth, db} from "./firebase.js";
-import {doc, getDoc, updateDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import {getAlliances} from "./cache.js";
-import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { auth, db } from "../lib/firebase.js";
+import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAlliances } from "../data/cache.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* ---------- ELEMENTS ---------- */
 const profileForm = document.getElementById("profileForm");
@@ -47,15 +47,15 @@ async function loadAlliances(selectEl) {
 /* ---------- LOAD PROFILE ---------- */
 async function loadProfile() {
     // Hide both sections first
-    profileView.style.display = "none";
-    profileForm.style.display = "none";
+    if (profileView) profileView.style.display = "none";
+    if (profileForm) profileForm.style.display = "none";
 
     // Show loading text / spinner
-    statusText.innerText = "Loading profile…";
+    if (statusText) statusText.innerText = "Loading profile…";
 
     const user = auth.currentUser;
     if (!user) {
-        statusText.innerText = "Not logged in";
+        if (statusText) statusText.innerText = "Not logged in";
         return;
     }
 
@@ -65,13 +65,13 @@ async function loadProfile() {
         snap = await getDoc(doc(db, "users", user.email));
     } catch (e) {
         console.error("Failed to read user doc", e);
-        statusText.innerText = "Failed to load profile";
+        if (statusText) statusText.innerText = "Failed to load profile";
         return;
     }
 
     if (!snap.exists()) {
         console.error("User doc missing");
-        statusText.innerText = "Profile not found. Contact admin.";
+        if (statusText) statusText.innerText = "Profile not found. Contact admin.";
         return;
     }
 
@@ -115,7 +115,7 @@ async function loadProfile() {
         used: true
     });
 
-        statusText.innerText =
+        if (statusText) statusText.innerText =
             "✅ Invitation accepted. Profile approved.";
 
         await loadProfile(); // 🔥 refresh UI
@@ -130,25 +130,27 @@ async function loadProfile() {
         await loadAlliances(allianceSelect);
 
         // Populate values
-        playerIdInput.value = data.playerId || "";
-        ingameNameInput.value = data.ingameName || "";
-        allianceSelect.value = data.alliance || "";
+        if (playerIdInput) playerIdInput.value = data.playerId || "";
+        if (ingameNameInput) ingameNameInput.value = data.ingameName || "";
+        if (allianceSelect) allianceSelect.value = data.alliance || "";
 
         // Status text last
-        statusText.innerText =
+        if (statusText) statusText.innerText =
             "✅ Profile approved. Contact admin for ID changes.";
 
         // 🔥 SHOW ONLY AFTER EVERYTHING IS READY
-        profileView.style.display = "block";
+        if (profileView) profileView.style.display = "block";
         return;
     }
 
     /* ---------- PENDING / NEW USER ---------- */
     await loadAlliances(alliancePending);
-    profileForm.style.display = "block";
-    profileForm.classList.add("fade-in");
+    if (profileForm) {
+        profileForm.style.display = "block";
+        profileForm.classList.add("fade-in");
+    }
 
-    statusText.innerText = "⏳ Complete your profile and wait for approval";
+    if (statusText) statusText.innerText = "⏳ Complete your profile and wait for approval";
 }
 
 /* ---------- SAVE (APPROVED USER) ---------- */
@@ -195,11 +197,11 @@ onAuthStateChanged(auth, async (user) => {
     try {
         // 🧊 KEEP SPINNER VISIBLE
         // auth-state.js will NOT hide it for profile data
-        spinner.style.display = "block";
+        if (spinner) spinner.style.display = "block";
         await loadProfile();
 
 
-        spinner.style.display = "none";
+        if (spinner) spinner.style.display = "none";
 
     } catch (e) {
         console.error(e);
@@ -256,3 +258,4 @@ function controlTabs(status) {
         document.getElementById("tab-profile").classList.add("active");
     }
 }
+

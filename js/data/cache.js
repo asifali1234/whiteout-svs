@@ -1,6 +1,5 @@
-// js/cache.js
-
-import { db } from "./firebase.js";
+// data/cache.js — small in-memory cache helpers for data-layer
+import { db } from "../lib/firebase.js";
 import {
     collection,
     getDocs,
@@ -28,3 +27,4 @@ export async function getAlliances() {
 export function clearAllianceCache() {
     allianceCache = null;
 }
+

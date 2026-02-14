@@ -1,6 +1,5 @@
-// js/auth-google.js
-
-import { auth } from "./firebase.js";
+// auth/auth-google.js — Google sign-in button wiring
+import { auth } from "../lib/firebase.js";
 import {
     GoogleAuthProvider,
     signInWithPopup,
@@ -41,3 +40,4 @@ if (logoutBtn) {
         }
     };
 }
+
