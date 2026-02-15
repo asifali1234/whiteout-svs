@@ -1,9 +1,11 @@
 // ui/profile.js — profile page UI & wiring
 
-import { auth, db } from "../lib/firebase.js";
-import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAlliances } from "../data/cache.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {auth, db} from "../lib/firebase.js";
+import {doc, getDoc, updateDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {getAlliances} from "../data/cache.js";
+import {acceptInviteIfExists} from "../data/inviteOps.js";
+
+import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 /* ---------- ELEMENTS ---------- */
 const profileForm = document.getElementById("profileForm");
@@ -19,7 +21,7 @@ const playerIdPending = document.getElementById("playerIdInputPending");
 const ingameNamePending = document.getElementById("ingameNameInputPending");
 const alliancePending = document.getElementById("allianceSelectPending");
 
-const spinner = document.getElementById("profileSpinner")
+const spinner = document.getElementById("profileSpinner");
 
 /* ---------- TOAST ---------- */
 function showToast(message, type = "info") {
@@ -75,7 +77,7 @@ async function loadProfile() {
         return;
     }
 
-    const data = snap.data();
+    let data = snap.data();
     console.log("PROFILE DATA:", data);
 
     const adminBtn = document.getElementById("adminBtn");
@@ -87,40 +89,17 @@ async function loadProfile() {
         };
     }
 
-    /* ================= CHECK INVITE ================= */
-    const { collection, query, where, getDocs } =
-        await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    /* ================= ACCEPT INVITE IF EXISTS ================= */
 
-    const inviteQuery = query(
-        collection(db, "invites"),
-        where("email", "==", user.email),
-        where("used", "==", false),
-        where("cancelled", "==", false)
-    );
+    const inviteAccepted = await acceptInviteIfExists(user.email);
 
-    const inviteSnap = await getDocs(inviteQuery);
-
-    if (!inviteSnap.empty) {
-    const inviteDoc = inviteSnap.docs[0];
-    const inviteData = inviteDoc.data();
-
-    await updateDoc(doc(db, "users", user.email), {
-        playerId: inviteData.playerId,
-        ingameName: inviteData.ingameName,
-        alliance: inviteData.alliance,
-        status: "approved"
-    });
-
-    await updateDoc(inviteDoc.ref, {
-        used: true
-    });
-
-        if (statusText) statusText.innerText =
-            "✅ Invitation accepted. Profile approved.";
-
-        await loadProfile(); // 🔥 refresh UI
-        return;
+    if (inviteAccepted) {
+        showToast("Invitation accepted", "success");
+        const refreshed = await getDoc(userRef);
+        data = refreshed.data();
     }
+
+    /* ================= CONTROL TABS ================= */
 
     controlTabs(data.status);
 
@@ -190,6 +169,10 @@ if (profileForm) {
 
     };
 }
+
+/* =====================================================
+   AUTH STATE
+===================================================== */
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) return;

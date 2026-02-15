@@ -1,16 +1,16 @@
 // ui/admin.js — Admin UI controller (tabs, modals, and renders)
 
 // Third-party / CDN imports
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {doc, getDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Local firebase instances
-import { auth, db } from "../lib/firebase.js";
+import {auth, db} from "../lib/firebase.js";
 
 // Data modules
-import { getAlliancesData, saveAllianceData } from "../data/allianceOps.js";
-import { createInvite, cancelInvite, fetchActiveInvites } from "../data/inviteOps.js";
-import { fetchUsersByStatus, approveUser, updateUser, deleteUser } from "../data/userOps.js";
+import {getAlliancesData, saveAllianceData} from "../data/allianceOps.js";
+import {cancelInvite, createInvite, fetchActiveInvites} from "../data/inviteOps.js";
+import {approveUser, deleteUser, fetchUsersByStatus, updateUser} from "../data/userOps.js";
 
 /* ===================== DOM NODES ===================== */
 /* ===================== SEARCH ===================== */
@@ -130,7 +130,7 @@ function renderAlliances(list) {
             <td>${a.shortName}</td>
             <td>${a.name}</td>
             <td>${a.status}</td>
-            <td><button>Edit</button></td>
+            <td><button class="secondary-btn">Edit</button></td>
         `;
         tr.querySelector("button").onclick = () => openAllianceModal(a);
         allianceTable.appendChild(tr);
@@ -206,11 +206,16 @@ function renderUsers(list, table, status) {
             <td>${u.playerId || "-"}</td>
             <td>${u.ingameName || "-"}</td>
             <td>${u.alliance || "-"}</td>
-            <td></td>
+            <td class="action-cell"></td>
         `;
+
+        const actionCell = tr.children[4];
+        const actionWrapper = document.createElement("div");
+        actionWrapper.className = "action-buttons";
 
         if (status === "pending") {
             const approve = document.createElement("button");
+            approve.className = "secondary-btn";
             approve.innerText = "Approve";
             approve.onclick = async () => {
                 try {
@@ -222,13 +227,14 @@ function renderUsers(list, table, status) {
                     showToast("Approve failed", "error");
                 }
             };
-            tr.children[4].appendChild(approve);
+            actionWrapper.appendChild(approve);
         }
 
         const edit = document.createElement("button");
+        edit.className = "secondary-btn";
         edit.innerText = "Edit";
         edit.onclick = () => openEditModal(u);
-        tr.children[4].appendChild(edit);
+        actionWrapper.appendChild(edit);
 
         const del = document.createElement("button");
         del.innerText = "Delete";
@@ -250,7 +256,9 @@ function renderUsers(list, table, status) {
                 showToast("Delete failed", "error");
             }
         };
-        tr.children[4].appendChild(del);
+
+        actionWrapper.appendChild(del);
+        actionCell.appendChild(actionWrapper);
 
         table.appendChild(tr);
     });
@@ -405,6 +413,7 @@ function attachSearch(input, table) {
         });
     };
 }
+
 if (inviteSearch) attachSearch(inviteSearch, inviteTable);
 if (pendingSearch) attachSearch(pendingSearch, pendingTable);
 if (approvedSearch) attachSearch(approvedSearch, approvedTable);

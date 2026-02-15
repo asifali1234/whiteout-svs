@@ -1,8 +1,37 @@
 // data/inviteOps.js — Firestore operations for invites (data layer)
-import { db, auth } from "../lib/firebase.js";
-import { addDoc, collection, updateDoc, doc, serverTimestamp, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-export async function createInvite({ email, playerId, ingameName, alliance }) {
+import { db, auth } from "../lib/firebase.js";
+import {
+    doc,
+    setDoc,
+    updateDoc,
+    collection,
+    getDocs,
+    query,
+    where,
+    serverTimestamp,
+    runTransaction,
+    getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* =====================================================
+   CREATE INVITE (UNIQUE PER EMAIL)
+===================================================== */
+export async function createInvite({email, playerId, ingameName, alliance}) {
+
+    const inviteRef = doc(db, "invites", email);
+
+    // Check if active invite already exists
+    const existing = await getDoc(inviteRef);
+
+    if (existing.exists()) {
+        const data = existing.data();
+
+        if (!data.used && !data.cancelled) {
+            throw new Error("Active invite already exists for this email.");
+        }
+    }
+
     const payload = {
         email,
         playerId,
@@ -14,14 +43,24 @@ export async function createInvite({ email, playerId, ingameName, alliance }) {
         createdAt: serverTimestamp()
     };
 
-    const ref = await addDoc(collection(db, "invites"), payload);
-    return ref.id;
+    await setDoc(inviteRef, payload);
+
+    return email; // document ID is email
 }
+
+/* =====================================================
+   CANCEL INVITE
+===================================================== */
 
 export async function cancelInvite(inviteId) {
-    await updateDoc(doc(db, "invites", inviteId), { cancelled: true });
+    await updateDoc(doc(db, "invites", inviteId), {
+        cancelled: true
+    });
 }
 
+/* =====================================================
+   FETCH ACTIVE INVITES
+===================================================== */
 export async function fetchActiveInvites() {
     const snap = await getDocs(
         query(
@@ -31,6 +70,55 @@ export async function fetchActiveInvites() {
         )
     );
 
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    return snap.docs.map(d => ({
+        id: d.id,   // now this IS the email
+        ...d.data()
+    }));
 }
 
+/* =====================================================
+   TRANSACTION-SAFE INVITE ACCEPTANCE
+===================================================== */
+
+export async function acceptInviteIfExists(userEmail) {
+
+    const inviteRef = doc(db, "invites", userEmail);
+    const userRef = doc(db, "users", userEmail);
+
+    try {
+
+        let accepted = false;
+
+        await runTransaction(db, async (transaction) => {
+
+            const inviteSnap = await transaction.get(inviteRef);
+
+            if (!inviteSnap.exists()) return;
+
+            const inviteData = inviteSnap.data();
+
+            if (inviteData.used || inviteData.cancelled) return;
+
+            // Update user atomically
+            transaction.update(userRef, {
+                playerId: inviteData.playerId,
+                ingameName: inviteData.ingameName,
+                alliance: inviteData.alliance,
+                status: "approved"
+            });
+
+            // Mark invite used
+            transaction.update(inviteRef, {
+                used: true
+            });
+
+            accepted = true;
+        });
+
+        return accepted;
+
+    } catch (e) {
+        console.error("Invite transaction failed:", e);
+        throw e;
+    }
+}

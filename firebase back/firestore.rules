@@ -2,6 +2,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Basic helpers
     function isLoggedIn() {
       return request.auth != null;
     }
@@ -12,65 +13,82 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.role == "admin";
     }
 
-    /* ---------------- ALLIANCES ---------------- */
+    function isSelf(userId) {
+      return isLoggedIn()
+        && request.auth.token.email == userId;
+    }
+
+
+
+    /* ================= ALLIANCES ================= */
     match /alliances/{id} {
       allow read: if isLoggedIn();
       allow write: if isAdmin();
     }
 
-    /* ---------------- USERS ---------------- */
+    /* ================= USERS ================= */
     match /users/{userId} {
 
       /* 1️⃣ First login → create empty user */
-      allow create: if isLoggedIn()
-        && request.auth.token.email == userId;
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasOnly([
+            "email", "role", "status",
+            "playerId", "ingameName",
+            "alliance", "createdAt"
+        ])
+        && request.resource.data.role == "member"
+        && request.resource.data.status == "incomplete";
 
       /* 2️⃣ Admin full access */
+
       allow read, write: if isAdmin();
 
-      /* 3️⃣ User can read own document */
-      allow read: if isLoggedIn()
-        && request.auth.token.email == userId;
+      /* 3️⃣ User read own */
+      allow read: if isSelf(userId);
 
-      /* 4️⃣ INVITED USER BOOTSTRAP (once) */
-      allow update: if isLoggedIn()
-        && request.auth.token.email == userId
+      /* 4️⃣ INVITE BOOTSTRAP (once, restricted fields) */
+      allow update: if isSelf(userId)
         && resource.data.playerId == null
         && resource.data.ingameName == null
-        && request.resource.data.status == "approved";
+        && request.resource.data.status == "approved"
+        && request.resource.data.diff(resource.data)
+             .changedKeys()
+             .hasOnly(["playerId", "ingameName", "alliance", "status"]);
 
-      /* 5️⃣ NON-INVITED USER PROFILE SUBMIT (once) */
-      allow update: if isLoggedIn()
-        && request.auth.token.email == userId
+      /* 5️⃣ NON-INVITED SUBMIT (once, restricted fields) */
+      allow update: if isSelf(userId)
         && resource.data.playerId == null
         && resource.data.ingameName == null
-        && request.resource.data.status == "pending";
+        && request.resource.data.status == "pending"
+        && request.resource.data.diff(resource.data)
+             .changedKeys()
+             .hasOnly(["playerId", "ingameName", "alliance", "status"]);
 
-      /* 6️⃣ APPROVED USER LIMITED EDIT (CORRECT) */
-      allow update: if isLoggedIn()
-        && request.auth.token.email == userId
+      /* 6️⃣ APPROVED USER LIMITED EDIT */
+      allow update: if isSelf(userId)
         && resource.data.status == "approved"
         && request.resource.data.diff(resource.data)
              .changedKeys()
              .hasOnly(["ingameName", "alliance"]);
-
     }
 
-
-    /* ---------------- INVITES ---------------- */
+    /* ================= INVITES ================= */
     match /invites/{inviteId} {
 
-      // Admin: full access
+      /* Admin full access */
       allow read, write: if isAdmin();
 
-      // User can READ their own invite
+      /* User read own invite */
       allow read: if isLoggedIn()
         && request.auth.token.email == resource.data.email;
 
-      // User can MARK THEIR OWN INVITE AS USED
+      /* User mark invite as used (ONLY that field) */
       allow update: if isLoggedIn()
         && request.auth.token.email == resource.data.email
         && resource.data.used == false
+        && request.resource.data.diff(resource.data)
+             .changedKeys()
+             .hasOnly(["used"])
         && request.resource.data.used == true;
     }
   }
