@@ -1,11 +1,11 @@
 // ui/profile.js — profile page UI & wiring
 
 import {auth, db} from "../lib/firebase.js";
-import {doc, getDoc, updateDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {getAlliances} from "../data/cache.js";
 import {acceptInviteIfExists} from "../data/inviteOps.js";
 
 import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {fetchUserByEmail, UpdateProfileOnApproval, UpdateUserToPending} from "../data/userOps";
 
 /* ---------- ELEMENTS ---------- */
 const profileForm = document.getElementById("profileForm");
@@ -64,7 +64,7 @@ async function loadProfile() {
 
     let snap;
     try {
-        snap = await getDoc(doc(db, "users", user.email));
+        snap = fetchUserByEmail(user.email);
     } catch (e) {
         console.error("Failed to read user doc", e);
         if (statusText) statusText.innerText = "Failed to load profile";
@@ -95,7 +95,7 @@ async function loadProfile() {
 
     if (inviteAccepted) {
         showToast("Invitation accepted", "success");
-        const refreshed = await getDoc(userRef);
+        const refreshed = fetchUserByEmail(user.email);
         data = refreshed.data();
     }
 
@@ -132,14 +132,12 @@ async function loadProfile() {
     if (statusText) statusText.innerText = "⏳ Complete your profile and wait for approval";
 }
 
+
 /* ---------- SAVE (APPROVED USER) ---------- */
 if (saveProfileBtn) {
     saveProfileBtn.onclick = async () => {
         try {
-            await updateDoc(doc(db, "users", auth.currentUser.email), {
-                ingameName: ingameNameInput.value.trim(),
-                alliance: allianceSelect.value
-            });
+            await UpdateProfileOnApproval(auth.currentUser.email, ingameNameInput.value.trim(), allianceSelect.value);
 
             showToast("Profile updated", "success");
             saveProfileBtn.innerText = "Saved ✓";
@@ -156,12 +154,7 @@ if (profileForm) {
     profileForm.onsubmit = async (e) => {
         e.preventDefault();
 
-        await updateDoc(doc(db, "users", auth.currentUser.email), {
-            playerId: playerIdPending.value.trim(),
-            ingameName: ingameNamePending.value.trim(),
-            alliance: alliancePending.value,
-            status: "pending"
-        });
+        await UpdateUserToPending(auth.currentUser.email, playerIdPending.value.trim(), ingameNamePending.value.trim(), alliancePending.value);
 
         showToast("Profile submitted", "success");
         profileForm.style.display = "none";

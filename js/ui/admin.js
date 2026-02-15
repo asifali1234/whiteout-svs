@@ -2,7 +2,6 @@
 
 // Third-party / CDN imports
 import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {doc, getDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Local firebase instances
 import {auth, db} from "../lib/firebase.js";
@@ -10,7 +9,7 @@ import {auth, db} from "../lib/firebase.js";
 // Data modules
 import {getAlliancesData, saveAllianceData} from "../data/allianceOps.js";
 import {cancelInvite, createInvite, fetchActiveInvites} from "../data/inviteOps.js";
-import {approveUser, deleteUser, fetchUsersByStatus, updateUser} from "../data/userOps.js";
+import {approveUser, deleteUser, fetchUserByEmail, fetchUsersByStatus, updateUser} from "../data/userOps.js";
 
 /* ===================== DOM NODES ===================== */
 /* ===================== SEARCH ===================== */
@@ -424,7 +423,7 @@ activateTab("alliances");
 onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
-    const snap = await getDoc(doc(db, "users", user.email));
+    const snap = fetchUserByEmail(user.email);
     if (!snap.exists()) return;
 
     const profileBtn = document.getElementById("profileBtn");
@@ -436,4 +435,5 @@ onAuthStateChanged(auth, async (user) => {
         };
     }
 });
+
 
