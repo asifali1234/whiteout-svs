@@ -35,16 +35,18 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
+  console.log("BOOTSTRAP DATA:", user);
+
   /* ================= LOGGED IN ================= */
-  const email = user.email;
-  const userRef = doc(db, "users", email);
+  const identifier = user.email;
+  const userRef = doc(db, "users", identifier);
 
   let snap = await getDoc(userRef);
 
   // first login bootstrap
   if (!snap.exists()) {
     await setDoc(userRef, {
-      email,
+      email: identifier,
       role: "member",
       status: "incomplete",
       playerId: null,
@@ -70,7 +72,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // already on admin page → render immediately
-    showApp();
+
     return;
   }
 
@@ -83,7 +85,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // already on profile page → SHOW IT
-    showApp();
+
     return;
   }
 
@@ -96,7 +98,7 @@ onAuthStateChanged(auth, async (user) => {
 
   console.log("mgoing to showapp");
 
-  showApp();
+
 });
 
 

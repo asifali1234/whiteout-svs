@@ -1,6 +1,15 @@
 // data/userOps.js — Firestore operations for user documents
-import { db } from "../lib/firebase.js";
-import { deleteDoc, updateDoc, doc, getDoc, ßgetDocs, query, collection, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {db} from "../lib/firebase.js";
+import {
+    collection,
+    deleteDoc,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    updateDoc,
+    where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 export async function fetchUsersByStatus(status) {
     const snap = await getDocs(query(collection(db, "users"), where("status", "==", status)));
@@ -20,7 +29,7 @@ export async function deleteUser(userId) {
 }
 
 export async function fetchUserByEmail(email) {
-    await getDoc(doc(db, "users", user.email))
+    return await getDoc(doc(db, "users", email));
 }
 
 export async function UpdateProfileOnApproval(email, ingameName, alliance) {

@@ -80,10 +80,10 @@ export async function fetchActiveInvites() {
    TRANSACTION-SAFE INVITE ACCEPTANCE
 ===================================================== */
 
-export async function acceptInviteIfExists(userEmail) {
+export async function acceptInviteIfExists(identifier) {
 
-    const inviteRef = doc(db, "invites", userEmail);
-    const userRef = doc(db, "users", userEmail);
+    const inviteRef = doc(db, "invites", identifier);
+    const userRef = doc(db, "users", identifier);
 
     try {
 
@@ -100,12 +100,14 @@ export async function acceptInviteIfExists(userEmail) {
             if (inviteData.used || inviteData.cancelled) return;
 
             // Update user atomically
-            transaction.update(userRef, {
+            transaction.set(userRef, {
+                email: identifier,
+                role: "member",
                 playerId: inviteData.playerId,
                 ingameName: inviteData.ingameName,
                 alliance: inviteData.alliance,
                 status: "approved"
-            });
+            }, { merge: true });
 
             // Mark invite used
             transaction.update(inviteRef, {

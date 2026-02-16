@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>Whiteout Survival – SVS Reservation</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-    <link rel="stylesheet" href="./css/theme.css" />
+    <link rel="stylesheet" href="./css/theme.css"/>
 </head>
 
 <body class="welcome-bg">
@@ -17,40 +17,88 @@
 
 <div id="appRoot" class="hidden">
 
-<div id="globalLoader" class="global-loader hidden">
-    <div class="spinner"></div>
-    <p>Signing you in…</p>
-</div>
+    <div id="globalLoader" class="global-loader hidden">
+        <div class="spinner"></div>
+        <p>Signing you in…</p>
+    </div>
 
-<div class="welcome-container">
+    <div class="welcome-container">
 
-    <div class="welcome-card">
+        <div class="welcome-card">
 
-        <h1 class="game-title">WHITEOUT SURVIVAL</h1>
-        <h2 class="subtitle">State Minister Reservation System</h2>
+            <h1 class="game-title">WHITEOUT SURVIVAL</h1>
+            <h2 class="subtitle">State Minister Reservation System</h2>
 
-        <p class="description">
-            Coordinate ministers, alliances, and players for SVS.<br />
-            Invited players are approved instantly.
-        </p>
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" data-auth="login">Login</button>
+                <button class="auth-tab-btn" data-auth="signup">Sign Up</button>
+            </div>
 
-        <button id="loginBtn" class="primary-btn">
-            <span class="google-icon">🔐</span>
-            Login with Google
-        </button>
+            <div class="auth-panel active" id="loginPanel">
+
+                <!-- Player ID Login -->
+                <form id="idLoginForm" class="auth-form">
+                    <input type="text" id="idEmail" placeholder="Player ID" required/>
+                    <input type="password" id="idPassword" placeholder="Password" required/>
+                    <button type="submit" class="primary-btn">Login</button>
+                </form>
+
+                <hr style="margin:20px 0; opacity:.2;">
+
+                <!-- Google Login -->
+                <button id="loginBtn" class="primary-btn">
+                    🔐 Login with Google
+                </button>
+
+            </div>
+
+            <div class="auth-panel" id="signupPanel">
+
+                <form id="idSignupForm" class="auth-form">
+                    <input type="text" id="signupPlayerId" placeholder="Player ID" required/>
+                    <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required/>
+                    <input type="password" id="signupConfirm" placeholder="Confirm Password" required/>
+                    <button type="submit" class="primary-btn">Create Account</button>
+                </form>
+
+            </div>
+
+        </div>
+
+        <footer class="footer">
+            State Management Tool • Built for SVS Coordination
+        </footer>
 
     </div>
 
-    <footer class="footer">
-        State Management Tool • Built for SVS Coordination
-    </footer>
+    <script type="module" src="./js/lib/firebase.js"></script>
+    <script type="module" src="./js/auth/auth-google.js"></script>
+    <script type="module" src="./js/auth/auth-id.js"></script>
+    <script type="module" src="./js/auth/auth-state.js"></script>
 
 </div>
 
-<script type="module" src="./js/lib/firebase.js"></script>
-<script type="module" src="./js/auth/auth-google.js"></script>
-<script type="module" src="./js/auth/auth-state.js"></script>
+<script>
+    document.querySelectorAll(".auth-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
 
-</div>
+            document.querySelectorAll(".auth-tab-btn")
+                .forEach(b => b.classList.remove("active"));
+
+            document.querySelectorAll(".auth-panel")
+                .forEach(p => p.classList.remove("active"));
+
+            btn.classList.add("active");
+
+            const panel = document.getElementById(
+                btn.dataset.auth === "login"
+                    ? "loginPanel"
+                    : "signupPanel"
+            );
+
+            panel.classList.add("active");
+        });
+    });
+</script>
 </body>
 </html>

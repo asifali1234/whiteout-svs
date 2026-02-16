@@ -1,11 +1,11 @@
 // ui/profile.js — profile page UI & wiring
 
-import {auth, db} from "../lib/firebase.js";
+import {auth} from "../lib/firebase.js";
 import {getAlliances} from "../data/cache.js";
 import {acceptInviteIfExists} from "../data/inviteOps.js";
 
 import {onAuthStateChanged} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {fetchUserByEmail, UpdateProfileOnApproval, UpdateUserToPending} from "../data/userOps";
+import {fetchUserByEmail, UpdateProfileOnApproval, UpdateUserToPending} from "../data/userOps.js";
 
 /* ---------- ELEMENTS ---------- */
 const profileForm = document.getElementById("profileForm");
@@ -21,7 +21,7 @@ const playerIdPending = document.getElementById("playerIdInputPending");
 const ingameNamePending = document.getElementById("ingameNameInputPending");
 const alliancePending = document.getElementById("allianceSelectPending");
 
-const spinner = document.getElementById("profileSpinner");
+// const spinner = document.getElementById("profileSpinner");
 
 /* ---------- TOAST ---------- */
 function showToast(message, type = "info") {
@@ -48,6 +48,11 @@ async function loadAlliances(selectEl) {
 
 /* ---------- LOAD PROFILE ---------- */
 async function loadProfile() {
+    // 🧊 KEEP SPINNER VISIBLE
+    // auth-state.js will NOT hide it for profile data
+    // if (spinner) spinner.style.display = "block";
+
+    console.log("Loading profile...");
     // Hide both sections first
     if (profileView) profileView.style.display = "none";
     if (profileForm) profileForm.style.display = "none";
@@ -64,7 +69,7 @@ async function loadProfile() {
 
     let snap;
     try {
-        snap = fetchUserByEmail(user.email);
+        snap = await fetchUserByEmail(user.email);
     } catch (e) {
         console.error("Failed to read user doc", e);
         if (statusText) statusText.innerText = "Failed to load profile";
@@ -79,6 +84,9 @@ async function loadProfile() {
 
     let data = snap.data();
     console.log("PROFILE DATA:", data);
+
+    // 🔥 PRELOAD ALLIANCES FIRST
+    const alliances = await getAlliances();
 
     const adminBtn = document.getElementById("adminBtn");
 
@@ -95,7 +103,7 @@ async function loadProfile() {
 
     if (inviteAccepted) {
         showToast("Invitation accepted", "success");
-        const refreshed = fetchUserByEmail(user.email);
+        const refreshed = await fetchUserByEmail(user.email);
         data = refreshed.data();
     }
 
@@ -105,8 +113,6 @@ async function loadProfile() {
 
     /* ---------- APPROVED USER ---------- */
     if (data.status === "approved") {
-        // Load alliances FIRST (offscreen)
-        await loadAlliances(allianceSelect);
 
         // Populate values
         if (playerIdInput) playerIdInput.value = data.playerId || "";
@@ -118,18 +124,21 @@ async function loadProfile() {
             "✅ Profile approved. Contact admin for ID changes.";
 
         // 🔥 SHOW ONLY AFTER EVERYTHING IS READY
+        console.log("SHOWING PROFILE VIEW Approved user");
         if (profileView) profileView.style.display = "block";
         return;
     }
 
     /* ---------- PENDING / NEW USER ---------- */
-    await loadAlliances(alliancePending);
     if (profileForm) {
+        console.log("showing profile form for pending/incomplete user");
         profileForm.style.display = "block";
         profileForm.classList.add("fade-in");
     }
 
     if (statusText) statusText.innerText = "⏳ Complete your profile and wait for approval";
+    console.log("PROFILE DATA:", data);
+    console.log("UI SETUP DONE");
 }
 
 
@@ -168,25 +177,25 @@ if (profileForm) {
 ===================================================== */
 
 onAuthStateChanged(auth, async (user) => {
+    console.log(user);
+    console.log("AUTH STATE CHANGED - PROFILE PAGE");
     if (!user) return;
 
+    // ✅ SHOW PAGE ONLY WHEN READY
+    const authLoader = document.getElementById("authLoader");
+    const appRoot = document.getElementById("appRoot");
+
+    if (appRoot) appRoot.classList.add("hidden");
+    if (authLoader) authLoader.style.display = "flex";
+
     try {
-        // 🧊 KEEP SPINNER VISIBLE
-        // auth-state.js will NOT hide it for profile data
-        if (spinner) spinner.style.display = "block";
         await loadProfile();
-
-
-        if (spinner) spinner.style.display = "none";
 
     } catch (e) {
         console.error(e);
         showToast("Failed to load profile", "error");
     } finally {
-        // ✅ SHOW PAGE ONLY WHEN READY
-        const authLoader = document.getElementById("authLoader");
-        const appRoot = document.getElementById("appRoot");
-
+        console.log("AUTH STATE CHANGED - PROFILE PAGE : DONE");
         if (authLoader) authLoader.style.display = "none";
         if (appRoot) appRoot.classList.remove("hidden");
     }

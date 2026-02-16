@@ -423,7 +423,7 @@ activateTab("alliances");
 onAuthStateChanged(auth, async (user) => {
     if (!user) return;
 
-    const snap = fetchUserByEmail(user.email);
+    const snap = await fetchUserByEmail(user.email);
     if (!snap.exists()) return;
 
     const profileBtn = document.getElementById("profileBtn");
