@@ -599,7 +599,7 @@ function renderCreateSvsUI() {
 
 function renderActiveSvsUI(svsId, data) {
 
-    const battleDate = new Date(data.battleDate.seconds * 1000);
+    const battleDate = data.battleDate; // already JS Date
     const now = new Date();
 
     let battleDateStr = "-";
@@ -607,7 +607,8 @@ function renderActiveSvsUI(svsId, data) {
     if (battleDate instanceof Date && !isNaN(battleDate)) {
         battleDateStr = battleDate.toISOString().substring(0, 10);
     }
-    const canSetVictor = now >= battleDate;
+
+
     const canComplete = now >= battleDate && !!data.victor;
 
     activeSvsContainer.innerHTML = `
@@ -833,13 +834,30 @@ async function renderPrepPointsUI(svsId) {
 }
 
 function renderVictorUI(svsId, data) {
-
+    console.log("Rendering Victor UI with data:", data);
     const container = document.getElementById("victorSection");
     if (!container) return;
 
-    const battleDate = new Date(data.battleDate.seconds * 1000);
+    const battleDate = data.battleDate; // already JS Date
     const now = new Date();
-    const canSet = now >= battleDate;
+
+    let battleDateStr = "-";
+
+    if (battleDate instanceof Date && !isNaN(battleDate)) {
+        battleDateStr = battleDate.toISOString().substring(0, 10);
+    }
+
+    console.log("Victor UI: " + battleDateStr);
+
+    const canSet =
+        battleDate instanceof Date &&
+        !isNaN(battleDate) &&
+        now >= battleDate;
+
+    console.log(battleDateStr);
+    console.log(now)
+    console.log(canSet)
+
 
     container.innerHTML = `
         <h4>Set Victor</h4>
