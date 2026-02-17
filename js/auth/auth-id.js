@@ -2,6 +2,7 @@
 
 import {auth} from "../lib/firebase.js";
 import {signInWithEmailAndPassword,createUserWithEmailAndPassword} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { validatePlayerIdClaim } from "../data/idGuard.js";
 
 /* ================= ELEMENTS ================= */
 
@@ -97,8 +98,26 @@ if (signupForm) {
         if (loader) loader.classList.remove("hidden");
 
         try {
+
+            const validation = await validatePlayerIdClaim(rawId, "id-signup");
+
+            if (!validation.allowed) {
+
+                if (validation.reason === "already-claimed") {
+                    alert("This Player ID is already registered.");
+                } else if (validation.reason === "reserved-placeholder") {
+                    alert("This Player ID is reserved.");
+                } else {
+                    alert("Invalid Player ID.");
+                }
+
+                if (loader) loader.classList.add("hidden");
+                return;
+            }
+
             await createUserWithEmailAndPassword(auth, email, password);
             console.log("Account created:", email);
+
         } catch (err) {
             console.error(err);
 

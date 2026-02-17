@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8"/>
     <title>Admin Dashboard – Whiteout SVS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="./css/theme.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="./css/theme.css"/>
 </head>
 
 <body class="admin-bg">
@@ -16,109 +16,154 @@
 
 <div id="appRoot" class="hidden">
 
-<!-- ================= MODALS ================= -->
+    <!-- ================= MODALS ================= -->
 
-<!-- EDIT USER MODAL -->
-<div id="editModal" class="modal">
-    <div class="modal-content">
-        <h3>Edit User</h3>
+    <div id="reserveModal" class="modal">
+        <div class="modal-content">
+            <h3>Reserve Slot</h3>
 
-        <input type="hidden" id="editEmail" />
+            <input id="reservePlayerId" placeholder="Player ID"/>
 
-        <label>Player ID
-            <input type="text" id="editPlayerId" />
-        </label>
+            <div id="reserveExtraFields" class="hidden">
+                <input id="reserveIngameName" placeholder="Ingame Name"/>
+                <input id="reserveAlliance" placeholder="Alliance ID"/>
+            </div>
 
-        <label>In-game Name
-            <input type="text" id="editIngameName" />
-        </label>
-
-        <label>Alliance
-            <select id="editAlliance"></select>
-        </label>
-
-        <label>Status
-            <select id="editStatus">
-                <option value="approved">Approved</option>
-                <option value="pending">Pending</option>
-                <option value="rejected">Rejected</option>
-            </select>
-        </label>
-
-        <label>Role
-            <select id="editRole">
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-            </select>
-        </label>
-
-        <div class="modal-actions">
-            <button class="secondary" id="cancelEditBtn">Cancel</button>
-            <button class="primary" id="saveEditBtn">Save</button>
+            <div class="modal-actions">
+                <button id="confirmReserveBtn" class="primary-btn">Reserve</button>
+                <button id="cancelReserveBtn" class="secondary-btn">Cancel</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- CREATE INVITE MODAL -->
-<div id="inviteModal" class="modal">
-    <div class="modal-content">
-        <h3>Create Invite</h3>
-
-        <label>Email
-            <input type="email" id="inviteEmail" />
-        </label>
-
-        <label>Player ID
-            <input type="text" id="invitePlayerId" />
-        </label>
-
-        <label>In-game Name
-            <input type="text" id="inviteIngameName" />
-        </label>
-
-        <label>Alliance
-            <select id="inviteAlliance"></select>
-        </label>
-
-        <div class="modal-actions">
-            <button class="secondary" id="cancelInviteBtn">Cancel</button>
-            <button class="primary" id="createInviteBtn">Create</button>
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="confirmYesBtn" class="danger-btn">Yes</button>
+                <button id="confirmNoBtn" class="secondary-btn">Cancel</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ALLIANCE MODAL -->
-<div id="allianceModal" class="modal">
-    <div class="modal-content">
-        <h3>Alliance</h3>
+    <!-- EDIT USER MODAL -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h3>Edit User</h3>
 
-        <label>Alliance ID
-            <input id="allianceIdInput" />
-        </label>
+            <input type="hidden" id="editEmail"/>
 
-        <label>Short Name
-            <input id="allianceShortNameInput" />
-        </label>
+            <label>Player ID
+                <input type="text" id="editPlayerId"/>
+            </label>
 
-        <label>Name
-            <input id="allianceNameInput" />
-        </label>
+            <label>In-game Name
+                <input type="text" id="editIngameName"/>
+            </label>
 
-        <label>Status
-            <select id="allianceStatusInput">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
-        </label>
+            <label>Alliance
+                <select id="editAlliance"></select>
+            </label>
 
-        <div class="modal-actions">
-            <button class="secondary" id="cancelAllianceBtn">Cancel</button>
-            <button class="primary" id="saveAllianceBtn">Save</button>
+            <label>Status
+                <select id="editStatus">
+                    <option value="approved">Approved</option>
+                    <option value="pending">Pending</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </label>
+
+            <label>Role
+                <select id="editRole">
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </label>
+
+            <div class="modal-actions">
+                <button class="secondary" id="cancelEditBtn">Cancel</button>
+                <button class="primary" id="saveEditBtn">Save</button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ================= PAGE ================= -->
+    <!-- CREATE INVITE MODAL -->
+    <div id="inviteModal" class="modal">
+        <div class="modal-content">
+            <h3>Create Invite</h3>
+
+            <!-- Invite Type -->
+            <label>
+                Invite Type
+                <select id="inviteType">
+                    <option value="email">Invite by Email</option>
+                    <option value="id">Invite by Player ID</option>
+                </select>
+            </label>
+
+            <!-- Email (only for email invite) -->
+            <label id="inviteEmailWrapper">
+                Email
+                <input type="email" id="inviteEmail"/>
+            </label>
+
+            <!-- Player ID (always required) -->
+            <label>
+                Player ID
+                <input type="text" id="invitePlayerId"/>
+            </label>
+
+            <label>
+                In-game Name
+                <input type="text" id="inviteIngameName"/>
+            </label>
+
+            <label>
+                Alliance
+                <select id="inviteAlliance"></select>
+            </label>
+
+            <div class="modal-actions">
+                <button class="secondary" id="cancelInviteBtn">Cancel</button>
+                <button class="primary" id="createInviteBtn">Create</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ALLIANCE MODAL -->
+    <div id="allianceModal" class="modal">
+        <div class="modal-content">
+            <h3>Alliance</h3>
+
+            <label>Alliance ID
+                <input id="allianceIdInput"/>
+            </label>
+
+            <label>Short Name
+                <input id="allianceShortNameInput"/>
+            </label>
+
+            <label>Name
+                <input id="allianceNameInput"/>
+            </label>
+
+            <label>Status
+                <select id="allianceStatusInput">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </label>
+
+            <div class="modal-actions">
+                <button class="secondary" id="cancelAllianceBtn">Cancel</button>
+                <button class="primary" id="saveAllianceBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE ================= -->
 
     <header class="admin-header">
         <h2>Whiteout SVS – Member Dashboard</h2>
@@ -138,68 +183,162 @@
         </div>
     </header>
 
-<div class="tabs">
-    <button class="tab-btn active" data-tab="alliances">Alliances</button>
-    <button class="tab-btn" data-tab="invites">Invites</button>
-    <button class="tab-btn" data-tab="pending">Pending Users</button>
-    <button class="tab-btn" data-tab="approved">Approved Users</button>
-</div>
+    <div class="admin-tab-wrapper">
+        <div class="admin-tabs">
+            <button class="tab-btn" data-tab="alliances">Alliances</button>
+            <button class="tab-btn" data-tab="invites">Invites</button>
+            <button class="tab-btn" data-tab="pending">Pending</button>
+            <button class="tab-btn" data-tab="approved">Approved</button>
+            <button class="tab-btn" data-tab="svs">SVS</button>
+            <button class="tab-btn" data-tab="history">History</button>
+            <button class="tab-btn" data-tab="audit">Audit</button>
+            <button class="tab-btn" data-tab="placeholders">
+                Placeholders
+            </button>
+        </div>
+    </div>
 
-<div id="tab-alliances" class="tab-panel active">
-    <div class="loader"></div>
-    <button id="openAllianceModalBtn" class="primary-btn">+ Create Alliance</button>
-    <table id="allianceTable"></table>
-</div>
-
-
-
-<div id="tab-invites" class="tab-panel">
-    <div class="loader"></div>
-    <button id="openInviteModalBtn" class="primary-btn">+ Create Invite</button>
-    <input
-            type="text"
-            class="search-input"
-            placeholder="Search invites (email, ID, name, alliance)"
-            data-search="invites"
-    />
-    <table id="inviteTable"></table>
-</div>
+    <div id="tab-alliances" class="tab-panel active">
+        <div class="loader"></div>
+        <button id="openAllianceModalBtn" class="primary-btn">+ Create Alliance</button>
+        <table id="allianceTable"></table>
+    </div>
 
 
+    <div id="tab-invites" class="tab-panel">
+        <div class="loader"></div>
+        <button id="openInviteModalBtn" class="primary-btn">+ Create Invite</button>
+        <input
+                type="text"
+                class="search-input"
+                placeholder="Search invites (email, ID, name, alliance)"
+                data-search="invites"
+        />
+        <table id="inviteTable"></table>
+    </div>
 
 
-<div id="tab-pending" class="tab-panel">
-    <div class="loader"></div>
-    <input
-            type="text"
-            class="search-input"
-            placeholder="Search pending users"
-            data-search="pending"
-    />
-    <table id="pendingTable"></table>
-</div>
+    <div id="tab-pending" class="tab-panel">
+        <div class="loader"></div>
+        <input
+                type="text"
+                class="search-input"
+                placeholder="Search pending users"
+                data-search="pending"
+        />
+        <table id="pendingTable"></table>
+    </div>
 
 
+    <div id="tab-approved" class="tab-panel">
+        <div class="loader"></div>
+        <input
+                type="text"
+                class="search-input"
+                placeholder="Search approved users"
+                data-search="approved"
+        />
+        <div class="table-wrapper">
+            <table id="approvedTable" class="admin-table"></table>
+        </div>
+
+    </div>
+
+    <div id="tab-svs" class="tab-panel">
+        <div class="loader"></div>
+
+        <!--    <div class="svs-card">-->
+        <!--        <h3>Create New SVS</h3>-->
+
+        <!--        <div class="svs-form-row">-->
+        <!--            <div class="svs-form-group">-->
+        <!--                <label>Opponent State</label>-->
+        <!--                <input type="text" id="svsOpponentState" />-->
+        <!--            </div>-->
+
+        <!--            <div class="svs-form-group">-->
+        <!--                <label>Battle Date (Saturday)</label>-->
+        <!--                <input type="date" id="svsBattleDate" />-->
+        <!--            </div>-->
+        <!--        </div>-->
+
+        <!--        <button id="createSvsBtn" class="primary-btn">-->
+        <!--            Create SVS-->
+        <!--        </button>-->
+
+        <!--        <div id="svsStatusBox" class="svs-status"></div>-->
+        <!--    </div>-->
+        <div id="svsCreationContainer"></div>
+        <div id="activeSvsContainer"></div>
+        <!--    <hr style="margin:20px 0;" />-->
+
+        <!--    <div id="activeSvsSection">-->
+        <!--        <h3>Active SVS Reservations</h3>-->
+        <!--        <div id="reservationCalendar">-->
+        <!--            <div class="day-tabs">-->
+        <!--                buttons for each day-->
+        <!--            </div>-->
+
+        <!--            <div class="day-panel">-->
+        <!--                slots for selected day-->
+        <!--            </div>-->
+        <!--        </div>-->
+        <!--    </div>-->
+    </div>
+
+    <div id="tab-history" class="tab-panel">
+        <div class="loader"></div>
+        <div id="historyContainer"></div>
+    </div>
+
+    <div id="tab-audit" class="tab-panel">
+        <div class="loader"></div>
+
+        <!-- ===== FILTER BAR ===== -->
+        <div class="audit-toolbar">
+
+            <div class="audit-search">
+                <input type="text" id="auditSearch"
+                       placeholder="Search player, ID, email, action..."/>
+            </div>
+
+            <div class="audit-filters">
+
+                <select id="auditActionFilter">
+                    <option value="">All Actions</option>
+                </select>
+
+                <select id="auditSeverityFilter">
+                    <option value="">All Severity</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                </select>
+
+                <input type="date" id="auditDateFilter"/>
+
+            </div>
+
+        </div>
+
+        <!-- ===== TABLE WRAPPER ===== -->
+        <div id="auditTableContainer" class="audit-table-wrapper"></div>
+
+    </div>
+
+    <div id="tab-placeholders" class="tab-panel">
+        <div class="loader"></div>
+        <div id="placeholderContainer"></div>
+    </div>
 
 
-<div id="tab-approved" class="tab-panel">
-    <div class="loader"></div>
-    <input
-            type="text"
-            class="search-input"
-            placeholder="Search approved users"
-            data-search="approved"
-    />
-    <table id="approvedTable"></table>
-</div>
+    <div id="toastContainer" class="toast-container"></div>
 
-<div id="toastContainer" class="toast-container"></div>
-
-<!-- ================= SCRIPTS ================= -->
-<script type="module" src="./js/lib/firebase.js"></script>
-<script type="module" src="./js/auth/auth-google.js"></script>
-<script type="module" src="./js/auth/auth-state.js"></script>
-<script type="module" src="./js/ui/admin.js"></script>
+    <!-- ================= SCRIPTS ================= -->
+    <script type="module" src="./js/lib/firebase.js"></script>
+    <script type="module" src="./js/auth/auth-google.js"></script>
+    <script type="module" src="./js/auth/auth-state.js"></script>
+    <script type="module" src="./js/ui/admin.js"></script>
 
 </div>
 

@@ -16,6 +16,16 @@
 
 <!-- REQUIRED by auth-state.js -->
 <div id="appRoot" class="hidden">
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle"></h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-actions">
+                <button id="confirmYesBtn" class="danger-btn">Yes</button>
+                <button id="confirmNoBtn" class="secondary-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
 
     <header class="admin-header">
         <h2>Whiteout SVS – Member Dashboard</h2>
@@ -35,12 +45,14 @@
         </div>
     </header>
 
+
     <!-- MEMBER TABS -->
     <div class="tabs member-tabs">
         <button class="tab-btn active" data-tab="profile">Profile</button>
-        <button class="tab-btn" data-tab="svs">SVS Prep</button>
-        <button class="tab-btn" data-tab="reservations">Reservations</button>
-        <button class="tab-btn" data-tab="announcements">Announcements</button>
+        <button class="tab-btn" data-tab="reservations">
+            Reservations
+        </button>
+
     </div>
 
     <div class="tab-container">
@@ -120,19 +132,15 @@
 
         <!-- RESERVATIONS -->
         <div id="tab-reservations" class="tab-panel">
-            <div class="welcome-card">
-                <h3>Minister Reservations</h3>
-                <p>Coming soon: request and manage minister roles.</p>
+            <div class="timezone-selector">
+                <label>Timezone:</label>
+                <select id="timezoneSelect"></select>
             </div>
+            </br>
+            <div id="memberReservationContainer"></div>
         </div>
 
-        <!-- ANNOUNCEMENTS -->
-        <div id="tab-announcements" class="tab-panel">
-            <div class="welcome-card">
-                <h3>State Announcements</h3>
-                <p>Important updates from admins will appear here.</p>
-            </div>
-        </div>
+
     </div>
 
     <script type="module" src="./js/lib/firebase.js"></script>

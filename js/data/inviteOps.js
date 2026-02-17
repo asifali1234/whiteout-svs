@@ -13,11 +13,79 @@ import {
     runTransaction,
     getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { validatePlayerIdClaim } from "./idGuard.js";
+import { logAudit } from "./auditOps.js";
+
 
 /* =====================================================
    CREATE INVITE (UNIQUE PER EMAIL)
 ===================================================== */
 export async function createInvite({email, playerId, ingameName, alliance}) {
+
+    if (!/^\d+$/.test(playerId)) {
+        throw new Error("Player ID must be numeric.");
+    }
+
+    /* =====================================================
+       GLOBAL PLAYER ID OWNERSHIP CHECK
+    ===================================================== */
+
+    const idValidation = await validatePlayerIdClaim(playerId, "invite-create");
+
+    if (!idValidation.allowed) {
+        if (idValidation.reason === "already-claimed") {
+            throw new Error("This Player ID is already registered.");
+        }
+
+        if (idValidation.reason === "reserved-placeholder") {
+            throw new Error("This Player ID is reserved.");
+        }
+    }
+
+    /* =====================================================
+       1️⃣ BLOCK IF USER ALREADY EXISTS (approved/pending)
+    ===================================================== */
+
+    const userRef = doc(db, "users", email);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+        const userData = userSnap.data();
+
+        if (userData.status === "approved") {
+            throw new Error("User is already approved.");
+        }
+
+        if (userData.status === "pending") {
+            throw new Error("User is already pending approval.");
+        }
+
+        // If user has already completed profile but status weird
+        if (userData.playerId || userData.ingameName || userData.alliance) {
+            throw new Error("User already has profile data.");
+        }
+    }
+
+    /* =====================================================
+       2️⃣ BLOCK DUPLICATE PLAYER ID INVITES
+    ===================================================== */
+
+    const existingSnap = await getDocs(
+        query(
+            collection(db, "invites"),
+            where("playerId", "==", playerId),
+            where("used", "==", false),
+            where("cancelled", "==", false)
+        )
+    );
+
+    if (!existingSnap.empty) {
+        throw new Error("Active invite already exists for this Player ID.");
+    }
+
+    /* =====================================================
+       3️⃣ BLOCK DUPLICATE EMAIL INVITES
+    ===================================================== */
 
     const inviteRef = doc(db, "invites", email);
 
@@ -32,6 +100,10 @@ export async function createInvite({email, playerId, ingameName, alliance}) {
         }
     }
 
+    /* =====================================================
+       4️⃣ CREATE INVITE
+    ===================================================== */
+
     const payload = {
         email,
         playerId,
@@ -45,6 +117,18 @@ export async function createInvite({email, playerId, ingameName, alliance}) {
 
     await setDoc(inviteRef, payload);
 
+    await logAudit({
+        entityType: "invite",
+        entityId: email,
+        action: "invite_created",
+        playerId,
+        ingameName,
+        alliance,
+        role: "admin",
+        severity: "info"
+    });
+
+
     return email; // document ID is email
 }
 
@@ -56,6 +140,14 @@ export async function cancelInvite(inviteId) {
     await updateDoc(doc(db, "invites", inviteId), {
         cancelled: true
     });
+    await logAudit({
+        entityType: "invite",
+        entityId: inviteId,
+        action: "invite_cancelled",
+        role: "admin",
+        severity: "warning"
+    });
+
 }
 
 /* =====================================================
@@ -99,15 +191,46 @@ export async function acceptInviteIfExists(identifier) {
 
             if (inviteData.used || inviteData.cancelled) return;
 
-            // Update user atomically
-            transaction.set(userRef, {
-                email: identifier,
-                role: "member",
-                playerId: inviteData.playerId,
-                ingameName: inviteData.ingameName,
-                alliance: inviteData.alliance,
-                status: "approved"
-            }, { merge: true });
+            const existingUserSnap = await transaction.get(userRef);
+
+            if (existingUserSnap.exists()) {
+                const existingData = existingUserSnap.data();
+
+                // If placeholder, convert it
+                if (existingData.isPlaceholder === true) {
+                    transaction.update(userRef, {
+                        role: "member",
+                        playerId: inviteData.playerId,
+                        ingameName: inviteData.ingameName,
+                        alliance: inviteData.alliance,
+                        status: "approved",
+                        isPlaceholder: false,
+                        authLinked: true
+                    });
+                } else {
+                    // Existing real user — just update fields
+                    transaction.update(userRef, {
+                        playerId: inviteData.playerId,
+                        ingameName: inviteData.ingameName,
+                        alliance: inviteData.alliance,
+                        status: "approved"
+                    });
+                }
+
+            } else {
+
+                // Create fresh user doc
+                transaction.set(userRef, {
+                    email: identifier,
+                    role: "member",
+                    playerId: inviteData.playerId,
+                    ingameName: inviteData.ingameName,
+                    alliance: inviteData.alliance,
+                    status: "approved",
+                    isPlaceholder: false,
+                    authLinked: true
+                });
+            }
 
             // Mark invite used
             transaction.update(inviteRef, {
