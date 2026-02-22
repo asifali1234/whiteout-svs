@@ -1,7 +1,7 @@
 // lib/firebase.js — Firebase initialization and shared instances
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /*
@@ -24,5 +24,9 @@ const app = initializeApp(firebaseConfig);
 
 // Export shared instances
 export const auth = getAuth(app);
+window.auth = auth;
 export const db = getFirestore(app);
+
+
+window.signInWithCustomToken = signInWithCustomToken;
 

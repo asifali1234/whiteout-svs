@@ -1197,12 +1197,23 @@ function exportReservationsToCSV(svsId, slotDocs) {
 
         const data = slot;
 
-        const dateObj = new Date(data.day + "T00:00:00Z");
-        const weekday = dateObj.toLocaleDateString("en-US", { weekday: "short" });
+        // ---- SAFE DATE ----
+        let weekday = "";
+        if (data.day) {
+            const dateObj = new Date(data.day + "T00:00:00Z");
+            if (!isNaN(dateObj)) {
+                weekday = dateObj.toLocaleDateString("en-US", { weekday: "short" });
+            }
+        }
 
-        const time = new Date(data.startTime.seconds * 1000)
-            .toISOString()
-            .substring(11, 16);
+        // ---- SAFE TIME ----
+        let time = "";
+        if (data.startTime && data.startTime.seconds) {
+            const timeObj = new Date(data.startTime.seconds * 1000);
+            if (!isNaN(timeObj)) {
+                time = timeObj.toISOString().substring(11, 16);
+            }
+        }
 
         const role = data.role
             ? data.role.replace(/_/g, " ").toUpperCase()
